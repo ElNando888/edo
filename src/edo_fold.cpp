@@ -64,6 +64,7 @@ lab_config* cnf = &daslab_cnf;
 
 bool is_legal( char* seq )
 {
+// TODO: these rules are pipeline-specific...
 #if 0
     if( strstr( seq, "AAAAA" ) ) return false;
 #endif
@@ -120,11 +121,11 @@ double score_seq( int s, char* seq )
 
 #define pr_ij(i,j) (i == j? 0.0 : (i < j ? ppm[ix[i]-j] : ppm[ix[j]-i]))
 
-    score = 10.0;
+    score = 10.0; // TODO: scale with hairpin length
     int i, o;
     for( i = 1; i <= length; i++ ) {
-        for( o = 1; o <= 19; o++ ) {
-            int j = length - 39 + o;
+        for( o = 1; o <= strlen( cnf->hairpin_ss ); o++ ) {
+            int j = length - cnf->ofs1 + o;
             double v = pr_ij( i, j );
             score -= v * ( 1.0 - v );
         }
