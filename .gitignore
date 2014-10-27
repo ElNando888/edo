@@ -1,0 +1,8 @@
+src/edo
+*.o
+src/.deps
+config.h
+config.log
+config.status
+Makefile
+stamp-h1
