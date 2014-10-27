@@ -1,0 +1,16 @@
+EDO is a tool for selecting Ensemble-Diversity Optimised hairpins used as
+barcodes in the context of high throughput synthesis pipelines, like Cloud Lab
+(see http://daslab.stanford.edu/das_research.html)
+
+Partition functions are computed using the ViennaRNA package.
+http://www.tbi.univie.ac.at/RNA/
+
+The distributed auction algorithm is largely based on ideas presented in
+  Zavlanos, M.M.; Spesivtsev, L.; Pappas, G.J., 
+  "A distributed auction algorithm for the assignment problem,"
+  47th IEEE Conference on Decision and Control, 2008. CDC 2008.
+  pp.1212-1217, 9-11 Dec. 2008
+which can be found online at 
+  http://dx.doi.org/10.1109/CDC.2008.4739098
+  or http://repository.upenn.edu/grasp_papers/33/
+
