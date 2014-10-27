@@ -1,0 +1,8 @@
+2014-10-27  Fernando Portela  <nando8888@gmail.com>
+
+  * implemented the notion of 'lab settings'
+
+2014-10-25  Fernando Portela  <nando8888@gmail.com>
+
+  * code refactored, folding routines in edo_fold.cpp
+  * switch from manual build to autotools
