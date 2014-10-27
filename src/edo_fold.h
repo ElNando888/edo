@@ -24,6 +24,8 @@ typedef struct _lab_config {
     const char* tail5p_nts;
     const char* hairpin_nts;
     const char* tail3p_nts;
+    // various precomputed offsets
+    int   ofs1, ofs2, ofs3, ofs4;
 } lab_config;
 
 

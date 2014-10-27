@@ -137,7 +137,7 @@ int bcseq_to_barcode( char* seq )
 {
     int k;
     int c = 0;
-    seq += strlen( seq ) - 28; // TODO
+    seq += strlen( seq ) - cnf->ofs1 + cnf->ofs3;
     for( k = 0; k < cnf->bclen; k++ ) {
         c <<= 2;
         c |= seq[k]=='C'? 0 : ( seq[k]=='U'? 1 : ( seq[k]=='A'? 2 : 3 ) );
@@ -155,10 +155,11 @@ bool is_tabu( char* seq )
 void compute_value( int i, int a )
 {
     int ofs = strlen( sequences[i] );
-    char* seq = (char*) malloc( 1 + ofs + 41 );
+    char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
     sprintf( seq, "%s%s%s%s", cnf->tail5p_nts, sequences[i],
                               cnf->hairpin_nts, cnf->tail3p_nts );
-    location_to_bcseq( a, seq+ofs+2, seq+ofs+13 ); // TODO
+    location_to_bcseq( a, seq + ofs + cnf->ofs2 + cnf->ofs4,
+                          seq + ofs + cnf->ofs3 + cnf->ofs4 );
     values[i][a] = is_tabu( seq ) ? 0.0 : score_seq( i, seq );
     free( seq );
 }
@@ -291,7 +292,8 @@ int load_file( char* filename )
                 int l = strspn( line, "AUGC" );
                 if( l >= cnf->bclen ) {
                     line[l] = 0;
-                    if( l >= 41 && strncmp( line, cnf->tail5p_nts, strlen( cnf->tail5p_nts ) )==0
+                    if( l >= cnf->ofs1 + cnf->ofs4
+                        && strncmp( line, cnf->tail5p_nts, strlen( cnf->tail5p_nts ) )==0
                         && strcmp( line+l-strlen( cnf->tail3p_nts ), cnf->tail3p_nts )==0 ) {
                         // has lab tails, so it's a player-reserved barcode
                         tabu.insert( bcseq_to_barcode( line ) );
@@ -392,10 +394,11 @@ void auction_barcodes( char* basename )
     for( j = 0; j < num_seq; j++ ) {
         int a = locations[0][j];
         int ofs = strlen( sequences[j] );
-        char* seq = (char*) malloc( 1 + ofs + 41 ); // TODO
+        char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
         sprintf( seq, "%s%s%s%s", cnf->tail5p_nts, sequences[j],
                                   cnf->hairpin_nts, cnf->tail3p_nts );
-        location_to_bcseq( a, seq+ofs+2, seq+ofs+13 ); //TODO
+        location_to_bcseq( a, seq + ofs + cnf->ofs2 + cnf->ofs4,
+                              seq + ofs + cnf->ofs3 + cnf->ofs4 );
         printf( "%s\t%6.3f\n", seq, values[j][a] );
         if( f ) fprintf( f, "%s\n", seq );
         free( seq );

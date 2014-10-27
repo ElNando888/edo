@@ -54,7 +54,9 @@ static lab_config daslab_cnf = {
     TAIL3P_SS,
     TAIL5P_NTS,
     HAIRPIN_NTS,
-    TAIL3P_NTS
+    TAIL3P_NTS,
+    (sizeof(HAIRPIN_SS)-1)+(sizeof(TAIL3P_SS)-1),
+    0, 11, 2
 };
 
 lab_config* cnf = &daslab_cnf;
@@ -91,7 +93,8 @@ double score_seq( int s, char* seq )
     fold_constrained = 0;
     paramT* params = get_scaled_parameters( temperature, md );
     double min_en = fold_par( seq, secstr, params, fold_constrained, 0 );
-    if( strcmp( secstr+length-39, HAIRPIN_SS TAIL3P_SS ) ) {
+    if( strncmp( secstr + length - cnf->ofs1, 
+                 cnf->hairpin_ss, strlen( cnf->hairpin_ss ) ) ) {
         free( params );
         free( secstr );
         free( ix );
