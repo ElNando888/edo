@@ -26,6 +26,8 @@ typedef struct _lab_config {
     const char* tail3p_nts;
     // various precomputed offsets
     int   ofs1, ofs2, ofs3, ofs4;
+    // scores
+    double s_max, s_scale;
 } lab_config;
 
 

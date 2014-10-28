@@ -55,7 +55,8 @@ static lab_config daslab_cnf = {
     TAIL5P_NTS,
     HAIRPIN_NTS,
     TAIL3P_NTS,
-    39, 0, 11, 2
+    39, 0, 11, 2,
+    10., 1.
 };
 
 lab_config* cnf = &daslab_cnf;
@@ -121,7 +122,7 @@ double score_seq( int s, char* seq )
 
 #define pr_ij(i,j) (i == j? 0.0 : (i < j ? ppm[ix[i]-j] : ppm[ix[j]-i]))
 
-    score = 10.0; // TODO: scale with hairpin length
+    score = cnf->s_max;
     int i, o;
     for( i = 1; i <= length; i++ ) {
         for( o = 1; o <= strlen( cnf->hairpin_ss ); o++ ) {
@@ -130,6 +131,7 @@ double score_seq( int s, char* seq )
             score -= v * ( 1.0 - v );
         }
     }
+    score *= cnf->s_scale;
 
     free( pf_params );
     free( params );
