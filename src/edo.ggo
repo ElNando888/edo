@@ -1,0 +1,27 @@
+purpose "A tool for selecting ensemble-diversity-optimized barcodes for cDNA libraries"
+
+# command line options passed to gengetopt
+args "--file-name=edo_cmdl --include-getopt --default-optional --func-name=edo_cmdline_parser --arg-struct-name=edo_args_info"
+
+description ""
+
+# Options
+section "General Options"
+sectiondesc="Below are command line options which alter the general behavior of this program\n"
+
+option  "lab-settings" L
+"Read lab settings from FILE, instead of using the default parameter set.\n"
+string
+typestr="FILE"
+optional
+
+option  "eval" -
+"Evaluation mode\n"
+flag
+off
+
+option  "verbose" v
+"Verbose output\n"
+flag
+off
+

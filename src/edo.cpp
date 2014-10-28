@@ -30,9 +30,10 @@
 #include <vector>
 
 #include "edo_fold.h"
+#include "edo_cmdl.h"
 
 #define dbg 0
-
+int verbose = 0;
 
 float epsilon = 0.01;
 
@@ -279,66 +280,32 @@ void do_round( int r, int* num_swap, float* delta )
 
 
 
-int load_file( char* filename )
+int load_input( void )
 {
-    FILE *f = fopen( filename, "rt" );
-    if( f ) {
-        char* line = NULL;
-        size_t len = 0;
-        ssize_t r;
-        do {
-            r = getline( &line, &len, f );
-            if( r >= 0 ) {
-                int l = strspn( line, "AUGC" );
-                if( l >= cnf->bclen ) {
-                    line[l] = 0;
-                    if( l >= cnf->ofs1 + cnf->ofs4
-                        && strncmp( line, cnf->tail5p_nts, strlen( cnf->tail5p_nts ) )==0
-                        && strcmp( line+l-strlen( cnf->tail3p_nts ), cnf->tail3p_nts )==0 ) {
-                        // has lab tails, so it's a player-reserved barcode
-                        tabu.insert( bcseq_to_barcode( line ) );
-                    } else {
-                        if( !is_legal( line ) ) {
-                            fprintf( stderr, "Warning, illegal sequence %s excluded.\n", line );
-                        } else {
-                            // add to the list
-                            nseqs++;
-                            seqs = (char**) realloc( seqs, nseqs * sizeof(char*) );
-                            seqs[nseqs - 1] = strdup( line );
-                        }
-                    }
-                }
-            }
-            free( line );
-            line = NULL;
-            len = 0;
-        } while( r >= 0 );
-        fclose( f );
-    }
-
-    return nseqs;
-}
-
-
-void eval_file( char* filename )
-{
-    FILE* fin = fopen( filename, "r" );
-    if( fin == NULL ) return;
-    char *outname = (char*) malloc( 1 + strlen( filename ) + 6 );
-    sprintf( outname, "%s.score", filename );
-    FILE* fout = fopen( outname, "w" );
-
     char* line = NULL;
     size_t len = 0;
     ssize_t r;
     do {
-        r = getline( &line, &len, fin );
+        r = getline( &line, &len, stdin );
         if( r >= 0 ) {
             int l = strspn( line, "AUGC" );
-            if( l >= 41 ) {
+            if( l >= cnf->bclen ) {
                 line[l] = 0;
-                double score = score_seq( 0, line );
-                fprintf( fout, "%9.6f\t%s\n", score, line );
+                if( l >= cnf->ofs1 + cnf->ofs4
+                    && strncmp( line, cnf->tail5p_nts, strlen( cnf->tail5p_nts ) )==0
+                    && strcmp( line+l-strlen( cnf->tail3p_nts ), cnf->tail3p_nts )==0 ) {
+                    // has lab tails, so it's a player-reserved barcode
+                    tabu.insert( bcseq_to_barcode( line ) );
+                } else {
+                    if( !is_legal( line ) ) {
+                        fprintf( stderr, "Warning, illegal sequence %s excluded.\n", line );
+                    } else {
+                        // add to the list
+                        nseqs++;
+                        seqs = (char**) realloc( seqs, nseqs * sizeof(char*) );
+                        seqs[nseqs - 1] = strdup( line );
+                    }
+                }
             }
         }
         free( line );
@@ -346,13 +313,33 @@ void eval_file( char* filename )
         len = 0;
     } while( r >= 0 );
 
-    fclose( fout );
-    free( outname );
-    fclose( fin );
+    return nseqs;
 }
 
 
-void auction_barcodes( char* basename )
+void eval_input( void )
+{
+    char* line = NULL;
+    size_t len = 0;
+    ssize_t r;
+    do {
+        r = getline( &line, &len, stdin );
+        if( r >= 0 ) {
+            int l = strspn( line, "AUGC" );
+            if( l >= 41 ) {
+                line[l] = 0;
+                double score = score_seq( 0, line );
+                fprintf( stdout, "%9.6f\t%s\n", score, line );
+            }
+        }
+        free( line );
+        line = NULL;
+        len = 0;
+    } while( r >= 0 );
+}
+
+
+void auction_barcodes( void )
 {
     init();
 
@@ -380,16 +367,14 @@ void auction_barcodes( char* basename )
     do {
         float delta;
         do_round( ++r, &swaps, &delta );
-        fprintf( stderr, "\rRound %3d: %8d PFs computed, %5d reassignments\n", r, num_scored, swaps );
+        if( verbose ) 
+            fprintf( stderr, "\rRound %3d: %8d PFs computed, "
+                             "%5d reassignments\n", r, num_scored, swaps );
         t++;
         t %= 2;
     } while( swaps > 0 );
 
     // output
-    char *outname = (char*) malloc( 1 + strlen( basename ) + 4 );
-    sprintf( outname, "%s.out", basename );
-    FILE* f = fopen( outname, "w" );
-
     fprintf( stderr, "\n" );
     for( j = 0; j < num_seq; j++ ) {
         int a = locations[0][j];
@@ -399,40 +384,40 @@ void auction_barcodes( char* basename )
                                   cnf->hairpin_nts, cnf->tail3p_nts );
         location_to_bcseq( a, seq + ofs + cnf->ofs2 + cnf->ofs4,
                               seq + ofs + cnf->ofs3 + cnf->ofs4 );
-        printf( "%s\t%6.3f\n", seq, values[j][a] );
-        if( f ) fprintf( f, "%s\n", seq );
+        if( verbose ) fprintf( stderr, "%s\t%6.3f\n", seq, values[j][a] );
+        fprintf( stdout, "%s\n", seq );
         free( seq );
     }
 
-    if( f ) fclose( f );
-    free( outname );
 }
 
 
 int main( int argc, char** argv )
 {
-    if( argc < 2 ) return 1;
+    edo_args_info args_info;
+    
+    if( edo_cmdline_parser( argc, argv, &args_info ) != 0 )
+        exit( 1 );
+    
+    if( args_info.verbose_given ) verbose = 1;
 
-    if( strcmp( argv[1], "-e" )==0 ) {
-        if( argc > 2 ) {
-            eval_file( argv[2] );
-        } else {
-            fprintf( stderr, "erm... eval what?\n" );
-        }
-        return 0;
+    if( args_info.eval_given ) {
+        eval_input();
+        exit( 0 );
     }
 
-    load_file( argv[1] );
+    load_input();
     if( nseqs == 0 ) {
         fprintf( stderr, "Not much work to do..." );
         return 0;
     }
 
     num_seq = nseqs;
-    fprintf( stderr, "Loaded %d sequences, %ld barcode(s) are reserved.\n\n", num_seq, tabu.size() );
+    if( verbose )
+        fprintf( stderr, "Loaded %d sequences, %ld barcode(s)"
+                         " are reserved.\n\n", num_seq, tabu.size() );
 
-    auction_barcodes( argv[1] );    
-    
+    auction_barcodes();
     return 0;
 }
 
