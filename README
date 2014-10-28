@@ -14,3 +14,13 @@ which can be found online at
   http://dx.doi.org/10.1109/CDC.2008.4739098
   or http://repository.upenn.edu/grasp_papers/33/
 
+
+Build the usual way:
+
+  ./configure
+  make
+
+and then try
+
+  src/edo -v < data/r89f.list >data/r89f.seqs
+  src/edo --eval < data/r89f.seqs
