@@ -1,6 +1,7 @@
 AM_CXXFLAGS = -I$(top_srcdir)/src
 AM_CXXFLAGS += $(OPENMP_CFLAGS)
 AM_CXXFLAGS += $(VRNA_CFLAGS)
+AM_CXXFLAGS += $(LIBCONFIG_CFLAGS)
 
 GENGETOPT_CMDL = edo_cmdl.c edo_cmdl.h
 GENGETOPT_FILES = edo.ggo
@@ -11,6 +12,7 @@ bin_PROGRAMS = edo
 
 edo_LDADD = $(AM_LDFLAGS)
 edo_LDADD += $(VRNA_LIBS)
+edo_LDADD += $(LIBCONFIG_LIBS)
 
 
 edo_cmdl.h edo_cmdl.c: edo.ggo

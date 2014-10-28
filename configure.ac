@@ -17,6 +17,7 @@ AC_SUBST(OPENMP_CFLAGS)
 
 # Checks for libraries.
 PKG_CHECK_MODULES([VRNA],[RNAlib2])
+PKG_CHECK_MODULES([LIBCONFIG],[libconfig])
 
 # Checks for header files.
 AC_CHECK_HEADERS([limits.h stdlib.h string.h unistd.h])

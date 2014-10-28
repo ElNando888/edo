@@ -21,6 +21,8 @@
 #include <stdlib.h>
 
 extern "C" {
+#include "libconfig.h"
+
 #include "RNAstruct.h"
 #include "fold_vars.h"
 #include "fold.h"
@@ -61,6 +63,99 @@ static lab_config daslab_cnf = {
 
 lab_config* cnf = &daslab_cnf;
 
+
+
+bool load_config( char* filename )
+{
+    bool ok = true;
+    config_t cfg;
+    config_init( &cfg );
+    if( config_read_file( &cfg, filename ) == CONFIG_TRUE ) {
+        lab_config* lab = (lab_config*) calloc( 1, sizeof( lab_config ) );
+        const char* buf;
+        if( ok && config_lookup_string( &cfg, "settings.secstr.tail5p",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->tail5p_ss = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok && config_lookup_string( &cfg, "settings.secstr.hairpin",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->hairpin_ss = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok && config_lookup_string( &cfg, "settings.secstr.tail3p",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->tail3p_ss = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok && config_lookup_string( &cfg, "settings.sequences.tail5p",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->tail5p_nts = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok && config_lookup_string( &cfg, "settings.sequences.hairpin",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->hairpin_nts = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok && config_lookup_string( &cfg, "settings.sequences.tail3p",
+                                        &buf ) == CONFIG_TRUE ) {
+            lab->tail3p_nts = strdup( buf );
+        } else {
+            ok = false;
+        }
+        if( ok ) {
+            // consistency checks
+            ok &= strlen( lab->tail5p_ss ) == strlen( lab->tail5p_nts );
+            ok &= strlen( lab->hairpin_ss ) == strlen( lab->hairpin_nts );
+            ok &= strlen( lab->tail3p_ss ) == strlen( lab->tail3p_nts );
+        }
+        if( ok ) {
+            // populate the other fields in the lab settings
+            lab->ofs1 = strlen( lab->hairpin_ss ) + strlen( lab->tail3p_ss );
+            lab->ofs2 = strcspn( lab->hairpin_ss, "(" );
+            lab->bclen = strspn( lab->hairpin_ss + lab->ofs2, "(" );
+            int j = lab->ofs2 + lab->bclen;
+            lab->ofs3 = j + strcspn( lab->hairpin_ss + j, ")" );
+            lab->ofs4 = strlen( lab->tail5p_ss );
+            lab->s_max = round( strlen( lab->hairpin_ss ) + .9 ) * 0.5;
+            lab->s_scale = 10.0 / lab->s_max;
+
+            if( verbose ) {
+                fprintf( stderr, "%s / / %s / %s\n", lab->tail5p_nts,
+                                                     lab->hairpin_nts,
+                                                     lab->tail3p_nts );
+                fprintf( stderr, "%s / / %s / %s\n", lab->tail5p_ss,
+                                                     lab->hairpin_ss,
+                                                     lab->tail3p_ss );
+                fprintf( stderr, "[%d,%d,%d,%d]-[%4.1f,%6.4f]\n",
+                                 lab->ofs1, lab->ofs2, lab->ofs3, lab->ofs4,
+                                 lab->s_max, lab->s_scale );
+                fprintf( stderr, "Configuration successfully loaded from %s\n",
+                                 filename );
+            }
+
+            // activate
+            cnf = lab;
+
+        } else {
+            free( lab );
+        }
+        
+    } else {
+        ok = false;
+        fprintf( stderr, "%s:%d: %s\n", filename, config_error_line( &cfg ),
+                                                  config_error_text( &cfg ) );
+    }
+    
+    config_destroy( &cfg );
+    return ok;
+}
 
 
 bool is_legal( char* seq )

@@ -401,6 +401,12 @@ int main( int argc, char** argv )
     
     if( args_info.verbose_given ) verbose = 1;
 
+    if( args_info.lab_settings_given ) {
+        if( !load_config( args_info.lab_settings_arg ) ) {
+            exit( 1 );
+        }
+    }
+
     if( args_info.eval_given ) {
         eval_input();
         exit( 0 );

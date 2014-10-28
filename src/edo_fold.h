@@ -31,8 +31,10 @@ typedef struct _lab_config {
 } lab_config;
 
 
+extern int verbose;
 extern lab_config* cnf;
 extern int num_scored;
 
+bool load_config( char* filename );
 bool is_legal( char* seq );
 double score_seq( int s, char* seq );

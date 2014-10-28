@@ -93,7 +93,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_edo_OBJECTS = edo.$(OBJEXT) edo_fold.$(OBJEXT) edo_cmdl.$(OBJEXT)
 edo_OBJECTS = $(am_edo_OBJECTS)
 am__DEPENDENCIES_1 =
-edo_DEPENDENCIES = $(am__DEPENDENCIES_1)
+edo_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -192,6 +192,8 @@ INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 LDFLAGS = @LDFLAGS@
+LIBCONFIG_CFLAGS = @LIBCONFIG_CFLAGS@
+LIBCONFIG_LIBS = @LIBCONFIG_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
@@ -259,11 +261,12 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CXXFLAGS = -I$(top_srcdir)/src $(OPENMP_CFLAGS) $(VRNA_CFLAGS)
+AM_CXXFLAGS = -I$(top_srcdir)/src $(OPENMP_CFLAGS) $(VRNA_CFLAGS) \
+	$(LIBCONFIG_CFLAGS)
 GENGETOPT_CMDL = edo_cmdl.c edo_cmdl.h
 GENGETOPT_FILES = edo.ggo
 EXTRA_DIST = $(GENGETOPT_FILES) $(GENGETOPT_CMDL)
-edo_LDADD = $(AM_LDFLAGS) $(VRNA_LIBS)
+edo_LDADD = $(AM_LDFLAGS) $(VRNA_LIBS) $(LIBCONFIG_LIBS)
 edo_SOURCES = edo.cpp edo_fold.h edo_fold.cpp edo_cmdl.h edo_cmdl.c
 all: all-am
 
