@@ -18,12 +18,14 @@
 
 typedef struct _lab_config {
     int	  bclen;
-    const char* tail5p_ss;
-    const char* hairpin_ss;
-    const char* tail3p_ss;
-    const char* tail5p_nts;
-    const char* hairpin_nts;
-    const char* tail3p_nts;
+    const char*  tail5p_ss;
+    const char*  hairpin_ss;
+    const char*  tail3p_ss;
+    const char*  tail5p_nts;
+    const char*  hairpin_nts;
+    const char*  tail3p_nts;
+    // forbidden subsequences
+    const char** forbidden;
     // various precomputed offsets
     int   ofs1, ofs2, ofs3, ofs4;
     // scores

@@ -47,7 +47,7 @@ extern "C" {
 #define HAIRPIN_NTS   ".......UUCG.......A"
 #define TAIL3P_NTS    "AAAGAAACAACAACAACAAC"
 
-
+static const char* daslab_forbidden[] = { "CCCC", "GGGG", NULL };
 
 static lab_config daslab_cnf = {
     BC_LEN,
@@ -57,6 +57,7 @@ static lab_config daslab_cnf = {
     TAIL5P_NTS,
     HAIRPIN_NTS,
     TAIL3P_NTS,
+    daslab_forbidden,
     39, 0, 11, 2,
     10., 1.
 };
@@ -116,6 +117,22 @@ bool load_config( char* filename )
             ok &= strlen( lab->tail3p_ss ) == strlen( lab->tail3p_nts );
         }
         if( ok ) {
+            char key[128];
+            int i;
+            for( i = 0; /* forever */; i++ ) {
+                sprintf( key, "settings.forbidden.[%d]", i );
+                if( config_lookup_string( &cfg, key, &buf ) != CONFIG_TRUE) break;
+                lab->forbidden = (const char**) realloc( lab->forbidden,
+                                                         (i+1) * sizeof( char* ) );
+                lab->forbidden[i] = strdup( buf );
+            }
+            if( lab->forbidden ) {
+                lab->forbidden = (const char**) realloc( lab->forbidden,
+                                                         (i+1) * sizeof( char* ) );
+                lab->forbidden[i] = NULL;
+            }
+        }
+        if( ok ) {
             // populate the other fields in the lab settings
             lab->ofs1 = strlen( lab->hairpin_ss ) + strlen( lab->tail3p_ss );
             lab->ofs2 = strcspn( lab->hairpin_ss, "(" );
@@ -127,12 +144,12 @@ bool load_config( char* filename )
             lab->s_scale = 10.0 / lab->s_max;
 
             if( verbose ) {
-                fprintf( stderr, "%s / / %s / %s\n", lab->tail5p_nts,
-                                                     lab->hairpin_nts,
-                                                     lab->tail3p_nts );
-                fprintf( stderr, "%s / / %s / %s\n", lab->tail5p_ss,
-                                                     lab->hairpin_ss,
-                                                     lab->tail3p_ss );
+                fprintf( stderr, "%s / / %s / / %s\n", lab->tail5p_nts,
+                                                       lab->hairpin_nts,
+                                                       lab->tail3p_nts );
+                fprintf( stderr, "%s / / %s / / %s\n", lab->tail5p_ss,
+                                                       lab->hairpin_ss,
+                                                       lab->tail3p_ss );
                 fprintf( stderr, "[%d,%d,%d,%d]-[%4.1f,%6.4f]\n",
                                  lab->ofs1, lab->ofs2, lab->ofs3, lab->ofs4,
                                  lab->s_max, lab->s_scale );
@@ -165,12 +182,20 @@ void load_fold_params( char* filename ) {
 
 bool is_legal( char* seq )
 {
-// TODO: these rules are pipeline-specific...
 #if 0
+// TODO: these rules are pipeline-specific...
     if( strstr( seq, "AAAAA" ) ) return false;
-#endif
     if( strstr( seq, "CCCC" ) ) return false;
     if( strstr( seq, "GGGG" ) ) return false;
+#endif
+
+    if( cnf->forbidden ) {
+        const char** p = cnf->forbidden;
+        while( *p ) {
+            if( strstr( seq, *p ) ) return false;
+            p++;
+        }
+    }
 
     return true;
 }
