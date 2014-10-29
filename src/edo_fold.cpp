@@ -170,7 +170,7 @@ bool load_config( char* filename )
         fprintf( stderr, "%s:%d: %s\n", filename, config_error_line( &cfg ),
                                                   config_error_text( &cfg ) );
     }
-    
+
     config_destroy( &cfg );
     return ok;
 }
@@ -201,7 +201,7 @@ bool is_legal( char* seq )
 }
 
 
-double score_seq( int s, char* seq )
+double score_seq( int s, char* seq, int ip )
 {
     double score = 0.0;
     if( !is_legal( seq ) ) return score;
@@ -219,7 +219,7 @@ double score_seq( int s, char* seq )
     fold_constrained = 0;
     paramT* params = get_scaled_parameters( temperature, md );
     double min_en = fold_par( seq, secstr, params, fold_constrained, 0 );
-    if( strncmp( secstr + length - cnf->ofs1, 
+    if( strncmp( secstr + ip,
                  cnf->hairpin_ss, strlen( cnf->hairpin_ss ) ) != 0
         || strcmp( secstr + length - strlen( cnf->tail3p_ss ),
                    cnf->tail3p_ss ) != 0 ) {
@@ -251,7 +251,7 @@ double score_seq( int s, char* seq )
     int i, o;
     for( i = 1; i <= length; i++ ) {
         for( o = 1; o <= strlen( cnf->hairpin_ss ); o++ ) {
-            int j = length - cnf->ofs1 + o;
+            int j = ip + o;
             double v = pr_ij( i, j );
             score -= v * ( 1.0 - v );
         }

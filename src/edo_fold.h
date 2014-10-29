@@ -40,4 +40,4 @@ extern int num_scored;
 bool load_config( char* filename );
 void load_fold_params( char* filename );
 bool is_legal( char* seq );
-double score_seq( int s, char* seq );
+double score_seq( int s, char* seq, int ip );

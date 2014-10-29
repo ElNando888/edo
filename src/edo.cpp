@@ -32,6 +32,10 @@
 #include "edo_fold.h"
 #include "edo_cmdl.h"
 
+#define BASES "AUGC"
+#define SEPARATORS "_-+='*"
+
+
 int verbose = 0;
 
 float epsilon = 0.01;
@@ -50,7 +54,9 @@ typedef std::map<long long, float> val_map;
 typedef val_map::iterator          val_map_it;
 typedef std::vector<val_map>       val_map_array;
 
-char**         sequences;    //   [num_seq]
+char**         sequences = NULL;    //   [num_seq]
+               // as in Hairpin Insertion Point
+int*           hip = NULL;          //   [num_seq]
 val_map_array  values;
 
 char**         seqs = NULL;
@@ -133,34 +139,37 @@ void location_to_bcseq( long long loc, char* s1, char* s2 )
     }
 }
 
-long bcseq_to_barcode( char* seq )
+long bcseq_to_barcode( char* seg )
 {
     int k;
     long c = 0;
-    seq += strlen( seq ) - cnf->ofs1 + cnf->ofs3;
     for( k = 0; k < cnf->bclen; k++ ) {
         c <<= 2;
-        c |= seq[k]=='C'? 0 : ( seq[k]=='U'? 1 : ( seq[k]=='A'? 2 : 3 ) );
+        c |= seg[k]=='C'? 0 : ( seg[k]=='U'? 1 : ( seg[k]=='A'? 2 : 3 ) );
     }
     return c;
 }
 
 
-bool is_tabu( char* seq )
+bool is_tabu( char* seg )
 {
-    long c = bcseq_to_barcode( seq );
+    long c = bcseq_to_barcode( seg );
     return tabu.find( c ) != tabu.end();
 }
 
 void compute_value( int i, long long a )
 {
-    int ofs = strlen( sequences[i] );
-    char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
-    sprintf( seq, "%s%s%s%s", cnf->tail5p_nts, sequences[i],
-                              cnf->hairpin_nts, cnf->tail3p_nts );
-    location_to_bcseq( a, seq + ofs + cnf->ofs2 + cnf->ofs4,
-                          seq + ofs + cnf->ofs3 + cnf->ofs4 );
-    values[i][a] = is_tabu( seq ) ? 0.0 : score_seq( i, seq );
+    int len = 1 + strlen( sequences[i] ) + cnf->ofs1 + cnf->ofs4;
+    char* seq = (char*) malloc( len );
+    sprintf( seq, "%s%.*s%s%s%s", cnf->tail5p_nts,
+                                  hip[i], sequences[i],
+                                  cnf->hairpin_nts, 
+                                  sequences[i] + hip[i],
+                                  cnf->tail3p_nts );
+    location_to_bcseq( a, seq + cnf->ofs4 + hip[i] + cnf->ofs2,
+                          seq + cnf->ofs4 + hip[i] + cnf->ofs3 );
+    values[i][a] = is_tabu( seq + cnf->ofs4 + hip[i] + cnf->ofs3 ) ?
+                       0.0 : score_seq( i, seq, cnf->ofs4 + hip[i] );
     free( seq );
 }
 
@@ -291,32 +300,41 @@ int load_input( void )
     ssize_t r;
     do {
         r = getline( &line, &len, stdin );
-        if( r >= 0 ) {
-            int l = strspn( line, "AUGC" );
-            if( l >= cnf->bclen ) {
-                line[l] = 0;
-                if( l >= cnf->ofs1 + cnf->ofs4
-                    && strncmp( line, cnf->tail5p_nts, strlen( cnf->tail5p_nts ) )==0
-                    && strcmp( line+l-strlen( cnf->tail3p_nts ), cnf->tail3p_nts )==0 ) {
-                    // has lab tails, so it's a player-reserved barcode
-                    tabu.insert( bcseq_to_barcode( line ) );
-                } else {
-                    if( !is_legal( line ) ) {
-                        fprintf( stderr, "Warning, illegal sequence %s excluded.\n", line );
-                    } else {
-                        // add to the list
-                        nseqs++;
-                        seqs = (char**) realloc( seqs, nseqs * sizeof(char*) );
-                        seqs[nseqs - 1] = strdup( line );
-                    }
-                }
-            }
+        if( r < 0 ) break;
+        int i, j, k;
+        if( line[0] == '-' ) { // pre-selected barcode, put in exclusion list
+            i = strcspn( line, BASES );
+            j = strspn( line + i, BASES );
+            if( j != cnf->bclen ) continue;
+            line[i + j] = '\0';
+            tabu.insert( bcseq_to_barcode( line+i ) );
+            continue;
         }
-        free( line );
-        line = NULL;
-        len = 0;
+        // targets
+        i = strspn( line, BASES );
+        if( i == 0 ) continue;
+        j = strspn( line + i, SEPARATORS );
+        k = 0;
+        if( j ) {
+            k = strspn( line + i + j, BASES );
+        }
+        line[i + j + k] = '\0';
+        if( !is_legal( line ) ) {
+            fprintf( stderr, "Warning, illegal sequence %s ignored.\n", line );
+        } else {
+            char* clean = strdup( line );
+            if( j ) strcpy( clean + i, line + i + j );
+            clean[i + k] = '\0';
+            // add to the list
+            nseqs++;
+            seqs = (char**) realloc( seqs, nseqs * sizeof(char*) );
+            seqs[nseqs - 1] = clean;
+            hip = (int*) realloc( hip, nseqs * sizeof(int) );
+            hip[nseqs - 1] = i;
+        }
     } while( r >= 0 );
 
+    free( line );
     return nseqs;
 }
 
@@ -328,18 +346,26 @@ void eval_input( void )
     ssize_t r;
     do {
         r = getline( &line, &len, stdin );
-        if( r >= 0 ) {
-            int l = strspn( line, "AUGC" );
-            if( l >= 41 ) {
-                line[l] = 0;
-                double score = score_seq( 0, line );
-                fprintf( stdout, "%9.6f\t%s\n", score, line );
-            }
+        if( r < 0 ) break;
+        int i = strspn( line, BASES );
+        int j = strspn( line + i, SEPARATORS );
+        if( j == 0 ) continue;
+        int k = strspn( line + i + j, BASES );
+        if( k != strlen( cnf->hairpin_nts ) ) continue;
+        char* clean = strdup( line );
+        strcpy( clean + i, line + i + j );
+        int l = strspn( line + i + j + k, SEPARATORS );
+        int m = 0;
+        if( l ) {
+            m = strspn( line + i + j + k + l, BASES );
+            strcpy( clean + i + k, line + i + j + k + l );
         }
-        free( line );
-        line = NULL;
-        len = 0;
+        clean[i + k + m] = '\0';
+        double score = score_seq( 0, clean, i );
+        fprintf( stdout, "%9.6f\t%s\n", score, clean );
+        free( clean );
     } while( r >= 0 );
+    free( line );
 }
 
 
@@ -388,10 +414,13 @@ void auction_barcodes( void )
         long long a = locations[0][j];
         int ofs = strlen( sequences[j] );
         char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
-        sprintf( seq, "%s%s%s%s", cnf->tail5p_nts, sequences[j],
-                                  cnf->hairpin_nts, cnf->tail3p_nts );
-        location_to_bcseq( a, seq + ofs + cnf->ofs2 + cnf->ofs4,
-                              seq + ofs + cnf->ofs3 + cnf->ofs4 );
+        sprintf( seq, "%s%.*s_%s_%s%s", cnf->tail5p_nts, 
+                                        hip[j], sequences[j],
+                                        cnf->hairpin_nts, 
+                                        sequences[j]+hip[j],
+                                        cnf->tail3p_nts );
+        location_to_bcseq( a, seq + cnf->ofs4 + hip[j] + 1 + cnf->ofs2,
+                              seq + cnf->ofs4 + hip[j] + 1 + cnf->ofs3 );
         if( verbose ) fprintf( stderr, "%s\t%6.3f\n", seq, values[j][a] );
         fprintf( stdout, "%s\n", seq );
         free( seq );
