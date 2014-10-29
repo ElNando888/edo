@@ -415,10 +415,16 @@ int main( int argc, char** argv )
         }
     }
 
+    if( args_info.paramFile_given ) {
+        load_fold_params( args_info.paramFile_arg );
+    }
+
     if( args_info.eval_given ) {
         eval_input();
         exit( 0 );
     }
+
+    edo_cmdline_parser_free( &args_info );
 
     load_input();
     if( nseqs == 0 ) {

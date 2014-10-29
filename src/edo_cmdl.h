@@ -43,15 +43,21 @@ struct edo_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  char * lab_settings_arg;	/**< @brief Read lab settings from FILE, instead of using the default parameter set.
-.  */
-  char * lab_settings_orig;	/**< @brief Read lab settings from FILE, instead of using the default parameter set.
- original value given at command line.  */
-  const char *lab_settings_help; /**< @brief Read lab settings from FILE, instead of using the default parameter set.
- help description.  */
-  int eval_flag;	/**< @brief Evaluation mode
+  int eval_flag;	/**< @brief Evaluation mode.
  (default=off).  */
-  const char *eval_help; /**< @brief Evaluation mode
+  const char *eval_help; /**< @brief Evaluation mode.
+ help description.  */
+  char * lab_settings_arg;	/**< @brief Read lab settings from FILE, instead of using the default settings (Cloud Lab).
+.  */
+  char * lab_settings_orig;	/**< @brief Read lab settings from FILE, instead of using the default settings (Cloud Lab).
+ original value given at command line.  */
+  const char *lab_settings_help; /**< @brief Read lab settings from FILE, instead of using the default settings (Cloud Lab).
+ help description.  */
+  char * paramFile_arg;	/**< @brief Read energy parameters from FILE, instead of using the default parameter set.
+.  */
+  char * paramFile_orig;	/**< @brief Read energy parameters from FILE, instead of using the default parameter set.
+ original value given at command line.  */
+  const char *paramFile_help; /**< @brief Read energy parameters from FILE, instead of using the default parameter set.
  help description.  */
   int verbose_flag;	/**< @brief Verbose output
  (default=off).  */
@@ -60,8 +66,9 @@ struct edo_args_info
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
-  unsigned int lab_settings_given ;	/**< @brief Whether lab-settings was given.  */
   unsigned int eval_given ;	/**< @brief Whether eval was given.  */
+  unsigned int lab_settings_given ;	/**< @brief Whether lab-settings was given.  */
+  unsigned int paramFile_given ;	/**< @brief Whether paramFile was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
 
 } ;

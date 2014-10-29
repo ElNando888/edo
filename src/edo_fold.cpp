@@ -158,6 +158,11 @@ bool load_config( char* filename )
 }
 
 
+void load_fold_params( char* filename ) {
+    read_parameter_file( filename );
+}
+
+
 bool is_legal( char* seq )
 {
 // TODO: these rules are pipeline-specific...

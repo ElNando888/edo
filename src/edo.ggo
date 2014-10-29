@@ -9,16 +9,22 @@ description ""
 section "General Options"
 sectiondesc="Below are command line options which alter the general behavior of this program\n"
 
+option  "eval" -
+"Evaluation mode.\n"
+flag
+off
+
 option  "lab-settings" L
-"Read lab settings from FILE, instead of using the default parameter set.\n"
+"Read lab settings from FILE, instead of using the default settings (Cloud Lab).\n"
 string
 typestr="FILE"
 optional
 
-option  "eval" -
-"Evaluation mode\n"
-flag
-off
+option  "paramFile" P
+"Read energy parameters from FILE, instead of using the default parameter set.\n"
+string
+typestr="FILE"
+optional
 
 option  "verbose" v
 "Verbose output\n"

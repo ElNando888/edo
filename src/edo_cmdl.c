@@ -37,8 +37,9 @@ const char *edo_args_info_help[] = {
   "  -V, --version            Print version and exit",
   "\nGeneral Options:",
   "  Below are command line options which alter the general behavior of this\n  program\n",
-  "  -L, --lab-settings=FILE  Read lab settings from FILE, instead of using the\n                             default parameter set.\n",
-  "      --eval               Evaluation mode\n                               (default=off)",
+  "      --eval               Evaluation mode.\n                               (default=off)",
+  "  -L, --lab-settings=FILE  Read lab settings from FILE, instead of using the\n                             default settings (Cloud Lab).\n",
+  "  -P, --paramFile=FILE     Read energy parameters from FILE, instead of using\n                             the default parameter set.\n",
   "  -v, --verbose            Verbose output\n                               (default=off)",
     0
 };
@@ -66,8 +67,9 @@ void clear_given (struct edo_args_info *args_info)
 {
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
-  args_info->lab_settings_given = 0 ;
   args_info->eval_given = 0 ;
+  args_info->lab_settings_given = 0 ;
+  args_info->paramFile_given = 0 ;
   args_info->verbose_given = 0 ;
 }
 
@@ -75,9 +77,11 @@ static
 void clear_args (struct edo_args_info *args_info)
 {
   FIX_UNUSED (args_info);
+  args_info->eval_flag = 0;
   args_info->lab_settings_arg = NULL;
   args_info->lab_settings_orig = NULL;
-  args_info->eval_flag = 0;
+  args_info->paramFile_arg = NULL;
+  args_info->paramFile_orig = NULL;
   args_info->verbose_flag = 0;
   
 }
@@ -89,9 +93,10 @@ void init_args_info(struct edo_args_info *args_info)
 
   args_info->help_help = edo_args_info_help[0] ;
   args_info->version_help = edo_args_info_help[1] ;
-  args_info->lab_settings_help = edo_args_info_help[4] ;
-  args_info->eval_help = edo_args_info_help[5] ;
-  args_info->verbose_help = edo_args_info_help[6] ;
+  args_info->eval_help = edo_args_info_help[4] ;
+  args_info->lab_settings_help = edo_args_info_help[5] ;
+  args_info->paramFile_help = edo_args_info_help[6] ;
+  args_info->verbose_help = edo_args_info_help[7] ;
   
 }
 
@@ -177,6 +182,8 @@ edo_cmdline_parser_release (struct edo_args_info *args_info)
 
   free_string_field (&(args_info->lab_settings_arg));
   free_string_field (&(args_info->lab_settings_orig));
+  free_string_field (&(args_info->paramFile_arg));
+  free_string_field (&(args_info->paramFile_orig));
   
   
 
@@ -211,10 +218,12 @@ edo_cmdline_parser_dump(FILE *outfile, struct edo_args_info *args_info)
     write_into_file(outfile, "help", 0, 0 );
   if (args_info->version_given)
     write_into_file(outfile, "version", 0, 0 );
-  if (args_info->lab_settings_given)
-    write_into_file(outfile, "lab-settings", args_info->lab_settings_orig, 0);
   if (args_info->eval_given)
     write_into_file(outfile, "eval", 0, 0 );
+  if (args_info->lab_settings_given)
+    write_into_file(outfile, "lab-settings", args_info->lab_settings_orig, 0);
+  if (args_info->paramFile_given)
+    write_into_file(outfile, "paramFile", args_info->paramFile_orig, 0);
   if (args_info->verbose_given)
     write_into_file(outfile, "verbose", 0, 0 );
   
@@ -1056,8 +1065,9 @@ edo_cmdline_parser_internal (
       static struct option long_options[] = {
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
-        { "lab-settings",	1, NULL, 'L' },
         { "eval",	0, NULL, 0 },
+        { "lab-settings",	1, NULL, 'L' },
+        { "paramFile",	1, NULL, 'P' },
         { "verbose",	0, NULL, 'v' },
         { 0,  0, 0, 0 }
       };
@@ -1067,7 +1077,7 @@ edo_cmdline_parser_internal (
       custom_opterr = opterr;
       custom_optopt = optopt;
 
-      c = custom_getopt_long (argc, argv, "hVL:v", long_options, &option_index);
+      c = custom_getopt_long (argc, argv, "hVL:P:v", long_options, &option_index);
 
       optarg = custom_optarg;
       optind = custom_optind;
@@ -1088,7 +1098,7 @@ edo_cmdline_parser_internal (
           edo_cmdline_parser_free (&local_args_info);
           exit (EXIT_SUCCESS);
 
-        case 'L':	/* Read lab settings from FILE, instead of using the default parameter set.
+        case 'L':	/* Read lab settings from FILE, instead of using the default settings (Cloud Lab).
 .  */
         
         
@@ -1097,6 +1107,19 @@ edo_cmdline_parser_internal (
               &(local_args_info.lab_settings_given), optarg, 0, 0, ARG_STRING,
               check_ambiguity, override, 0, 0,
               "lab-settings", 'L',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'P':	/* Read energy parameters from FILE, instead of using the default parameter set.
+.  */
+        
+        
+          if (update_arg( (void *)&(args_info->paramFile_arg), 
+               &(args_info->paramFile_orig), &(args_info->paramFile_given),
+              &(local_args_info.paramFile_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "paramFile", 'P',
               additional_error))
             goto failure;
         
@@ -1114,7 +1137,7 @@ edo_cmdline_parser_internal (
           break;
 
         case 0:	/* Long option with no short option */
-          /* Evaluation mode
+          /* Evaluation mode.
 .  */
           if (strcmp (long_options[option_index].name, "eval") == 0)
           {
