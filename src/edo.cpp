@@ -32,7 +32,6 @@
 #include "edo_fold.h"
 #include "edo_cmdl.h"
 
-#define dbg 0
 int verbose = 0;
 
 float epsilon = 0.01;
@@ -44,12 +43,12 @@ int t = 0;
 
 float**        prices[2];    // [][num_seq][num_bc]
 int**          bidders[2];   // [][num_seq][num_bc]
-int*           alpha[2];     // [][num_seq]
-unsigned int*  locations[2]; // [][num_seq]
+long*          alpha[2];     // [][num_seq]
+long long*     locations[2]; // [][num_seq]
 
-typedef std::map<int, float> val_map;
-typedef val_map::iterator    val_map_it;
-typedef std::vector<val_map> val_map_array;
+typedef std::map<long long, float> val_map;
+typedef val_map::iterator          val_map_it;
+typedef std::vector<val_map>       val_map_array;
 
 char**         sequences;    //   [num_seq]
 val_map_array  values;
@@ -57,7 +56,7 @@ val_map_array  values;
 char**         seqs = NULL;
 int            nseqs = 0;
 
-std::set<int>  tabu;
+std::set<long> tabu;
 
 int            num_scored = 0;
 
@@ -78,8 +77,8 @@ void init( void )
         bidders[t] = ( int** ) calloc( num_seq, sizeof( int* ) );
         for( s = 0; s < num_seq; s++ )
             bidders[t][s] = ( int* ) calloc( num_bc, sizeof( int ) );
-        alpha[t] = ( int* ) calloc( num_seq, sizeof( int ) );
-        locations[t] = ( unsigned int* ) calloc( num_seq, sizeof( unsigned int ) );
+        alpha[t] = ( long* ) calloc( num_seq, sizeof( long ) );
+        locations[t] = ( long long* ) calloc( num_seq, sizeof( long long ) );
     }
 
     sequences = (char**) calloc( num_seq, sizeof(char*) );
@@ -109,13 +108,13 @@ bool neighbor( int i, int j )
 
 // C U A G
 char bases[] = "CUAG";
-int pmap[] = { 0x03, 0x0C, 0x09, 0x06, 0x07, 0x0D };
+long long pmap[] = { 0x03, 0x0C, 0x09, 0x06, 0x07, 0x0D };
 
 
-int location_to_barcode( int loc )
+long location_to_barcode( long long loc )
 {
     int k;
-    int c = 0;
+    long c = 0;
     for( k = 0; k < cnf->bclen; k++ ) {
         c <<= 2;
         c |= ( loc & 0x03 );
@@ -124,7 +123,7 @@ int location_to_barcode( int loc )
     return c;
 }
 
-void location_to_bcseq( int loc, char* s1, char* s2 )
+void location_to_bcseq( long long loc, char* s1, char* s2 )
 {
     int k;
     for( k = 0; k < cnf->bclen; k++ ) {
@@ -134,10 +133,10 @@ void location_to_bcseq( int loc, char* s1, char* s2 )
     }
 }
 
-int bcseq_to_barcode( char* seq )
+long bcseq_to_barcode( char* seq )
 {
     int k;
-    int c = 0;
+    long c = 0;
     seq += strlen( seq ) - cnf->ofs1 + cnf->ofs3;
     for( k = 0; k < cnf->bclen; k++ ) {
         c <<= 2;
@@ -149,11 +148,11 @@ int bcseq_to_barcode( char* seq )
 
 bool is_tabu( char* seq )
 {
-    int c = bcseq_to_barcode( seq );
+    long c = bcseq_to_barcode( seq );
     return tabu.find( c ) != tabu.end();
 }
 
-void compute_value( int i, int a )
+void compute_value( int i, long long a )
 {
     int ofs = strlen( sequences[i] );
     char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
@@ -171,9 +170,9 @@ void update_local_values( int i )
     #pragma omp parallel for
     for( k = 0; k < cnf->bclen; k++ ) {
         int j;
-        unsigned int mask = 0x0F << ( k*4 );
+        long long mask = 0x0F << ( k*4 );
         for( j = 0; j < 6; j++ ) {
-            int a = ( locations[t][i] & ~mask ) | ( pmap[j] << ( k*4 ) );
+            long long a = ( locations[t][i] & ~mask ) | ( pmap[j] << ( k*4 ) );
             if( values[i].find( a ) != values[i].end() ) continue;
             compute_value( i, a );
         }
@@ -193,11 +192,13 @@ void do_round( int r, int* num_swap, float* delta )
 
     #pragma omp parallel for
     for( i = 0; i < num_seq; i++ ) {
-        int j, k;
+        int j;
+        long k;
         int next_t = (t+1)%2;
 
+        if( verbose )
         #pragma omp critical(console)
-        if( !dbg ) {
+        {
             fprintf( stderr, "\rRound %3d, %d/%d", r, ++cnt, num_seq );
             fflush( stderr );
         }
@@ -216,7 +217,9 @@ void do_round( int r, int* num_swap, float* delta )
         for( j = 0; j < num_seq; j++ ) {
             // if( (j == i) || !neighbor( i, j ) ) continue;
             for( k = 0; k < num_bc; k++ ) {
-                if( ( prices[t][j][k] > new_p[k] ) || ( prices[t][j][k] == new_p[k] && bidders[t][j][k] > new_b[k] ) ) {
+                if( ( prices[t][j][k] > new_p[k] ) 
+                    || ( prices[t][j][k] == new_p[k] 
+                         && bidders[t][j][k] > new_b[k] ) ) {
                     new_p[k] = prices[t][j][k];
                     new_b[k] = bidders[t][j][k];
                 }
@@ -239,12 +242,12 @@ void do_round( int r, int* num_swap, float* delta )
 
             // 3.b choose a new assignment
             float best_g = -100.0;
-            int best_x = -1;
-            int best_c = -1;
+            long long best_x = -1;
+            long best_c = -1;
             val_map_it m;
             for( m = values[i].begin(); m != values[i].end(); m++ ) {
-                int x = m->first;
-                int c = location_to_barcode( x );
+                long long x = m->first;
+                long c = location_to_barcode( x );
                 if( values[i][x] - new_p[c] > best_g ) {
                     best_g = values[i][x] - new_p[c];
                     best_x = x;
@@ -253,8 +256,8 @@ void do_round( int r, int* num_swap, float* delta )
             }
             float next_g = -100.0;
             for( m = values[i].begin(); m != values[i].end(); m++ ) {
-                int x = m->first;
-                int c = location_to_barcode( x );
+                long long x = m->first;
+                long c = location_to_barcode( x );
                 if( c == best_c ) continue;
                 if( values[i][x] - new_p[c] > next_g ) {
                     next_g = values[i][x] - new_p[c];
@@ -272,7 +275,8 @@ void do_round( int r, int* num_swap, float* delta )
         }
 
         #pragma omp atomic update
-        (*delta) += values[i][locations[next_t][i]] - prices[next_t][i][alpha[next_t][i]];
+        (*delta) += values[i][locations[next_t][i]] 
+                    - prices[next_t][i][alpha[next_t][i]];
     } // for( i
 
     (*delta) /= num_seq;
@@ -343,7 +347,8 @@ void auction_barcodes( void )
 {
     init();
 
-    int j, k;
+    int j;
+    long k;
     for( j = 0; j < num_seq; j++ ) {
         sequences[j] = seqs[j];
     }
@@ -356,6 +361,9 @@ void auction_barcodes( void )
             bidders[0][j][k] = j;
         }
         // locations[0][j] = index_to_location( (int)(drand48() * num_loc) );
+        // TODO:
+        // - document and automate this "origin magic"
+        // - if possible, find something better
         locations[0][j] = 0x3339CCC;
         alpha[0][j] = location_to_barcode( locations[0][j] );
         bidders[0][j][alpha[0][j]] = num_seq;
@@ -377,7 +385,7 @@ void auction_barcodes( void )
     // output
     fprintf( stderr, "\n" );
     for( j = 0; j < num_seq; j++ ) {
-        int a = locations[0][j];
+        long long a = locations[0][j];
         int ofs = strlen( sequences[j] );
         char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
         sprintf( seq, "%s%s%s%s", cnf->tail5p_nts, sequences[j],
