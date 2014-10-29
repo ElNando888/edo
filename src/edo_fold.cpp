@@ -135,11 +135,12 @@ bool load_config( char* filename )
         if( ok ) {
             // populate the other fields in the lab settings
             lab->ofs1 = strlen( lab->hairpin_ss ) + strlen( lab->tail3p_ss );
-            lab->ofs2 = strcspn( lab->hairpin_ss, "(" );
-            lab->bclen = strspn( lab->hairpin_ss + lab->ofs2, "(" );
+            lab->ofs2 = strcspn( lab->hairpin_nts, "." );
+            lab->bclen = strspn( lab->hairpin_nts + lab->ofs2, "." );
             int j = lab->ofs2 + lab->bclen;
-            lab->ofs3 = j + strcspn( lab->hairpin_ss + j, ")" );
+            lab->ofs3 = j + strcspn( lab->hairpin_nts + j, "." );
             lab->ofs4 = strlen( lab->tail5p_ss );
+            
             lab->s_max = round( strlen( lab->hairpin_ss ) + .9 ) * 0.5;
             lab->s_scale = 10.0 / lab->s_max;
 
@@ -183,7 +184,6 @@ void load_fold_params( char* filename ) {
 bool is_legal( char* seq )
 {
 #if 0
-// TODO: these rules are pipeline-specific...
     if( strstr( seq, "AAAAA" ) ) return false;
     if( strstr( seq, "CCCC" ) ) return false;
     if( strstr( seq, "GGGG" ) ) return false;
