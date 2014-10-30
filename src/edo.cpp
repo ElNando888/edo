@@ -112,6 +112,14 @@ bool neighbor( int i, int j )
 }
 #endif
 
+
+int int_urn( int from, int to )
+{
+    return ( ( (int) (drand48()*(to-from+1)) ) + from );
+}
+   
+   
+
 // C U A G
 char bases[] = "CUAG";
 long long pmap[] = { 0x03, 0x0C, 0x09, 0x06, 0x07, 0x0D };
@@ -379,6 +387,15 @@ void auction_barcodes( void )
         sequences[j] = seqs[j];
     }
     t = 0;
+
+    // choose an "origin"
+    long long origin = 0;
+    for( j = 0; j < cnf->bclen; j++ ) {
+        int v = int_urn( 0, j == 0 || j == cnf->bclen-1 ? 1 : 9 ) % 4;
+        origin <<= 4;
+        origin |= v==0 ? 0x3 : v==1 ? 0xC : v==2 ? 0x6 : 0x9;
+    }
+    long org_bc = location_to_barcode( origin );
     
     // populate arrays
     for( j = 0; j < num_seq; j++ ) {
@@ -386,12 +403,8 @@ void auction_barcodes( void )
             prices[0][j][k] = 1.0 + drand48();
             bidders[0][j][k] = j;
         }
-        // locations[0][j] = index_to_location( (int)(drand48() * num_loc) );
-        // TODO:
-        // - document and automate this "origin magic"
-        // - if possible, find something better
-        locations[0][j] = 0x3339CCC;
-        alpha[0][j] = location_to_barcode( locations[0][j] );
+        locations[0][j] = origin;
+        alpha[0][j] = org_bc;
         bidders[0][j][alpha[0][j]] = num_seq;
     }
 
