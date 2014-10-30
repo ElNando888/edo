@@ -167,17 +167,17 @@ bool is_tabu( char* seg )
 
 void compute_value( int i, long long a )
 {
-    int len = 1 + strlen( sequences[i] ) + cnf->ofs1 + cnf->ofs4;
+    int len = 1 + strlen( sequences[i] ) + cnf->hp_tl;
     char* seq = (char*) malloc( len );
     sprintf( seq, "%s%.*s%s%s%s", cnf->tail5p_nts,
                                   hip[i], sequences[i],
                                   cnf->hairpin_nts, 
                                   sequences[i] + hip[i],
                                   cnf->tail3p_nts );
-    location_to_bcseq( a, seq + cnf->ofs4 + hip[i] + cnf->ofs2,
-                          seq + cnf->ofs4 + hip[i] + cnf->ofs3 );
-    values[i][a] = is_tabu( seq + cnf->ofs4 + hip[i] + cnf->ofs3 ) ?
-                       0.0 : score_seq( i, seq, cnf->ofs4 + hip[i] );
+    location_to_bcseq( a, seq + cnf->tl5p + hip[i] + cnf->hp5p,
+                          seq + cnf->tl5p + hip[i] + cnf->hp3p );
+    values[i][a] = is_tabu( seq + cnf->tl5p + hip[i] + cnf->hp3p ) ?
+                       0.0 : score_seq( i, seq, cnf->tl5p + hip[i] );
     free( seq );
 }
 
@@ -425,15 +425,15 @@ void auction_barcodes( void )
     fprintf( stderr, "\n" );
     for( j = 0; j < num_seq; j++ ) {
         long long a = locations[0][j];
-        int ofs = strlen( sequences[j] );
-        char* seq = (char*) malloc( 1 + ofs + cnf->ofs1 + cnf->ofs4 );
+        int len = 1 + strlen( sequences[j] ) + cnf->hp_tl;
+        char* seq = (char*) malloc( len );
         sprintf( seq, "%s%.*s_%s_%s%s", cnf->tail5p_nts, 
                                         hip[j], sequences[j],
                                         cnf->hairpin_nts, 
                                         sequences[j]+hip[j],
                                         cnf->tail3p_nts );
-        location_to_bcseq( a, seq + cnf->ofs4 + hip[j] + 1 + cnf->ofs2,
-                              seq + cnf->ofs4 + hip[j] + 1 + cnf->ofs3 );
+        location_to_bcseq( a, seq + cnf->tl5p + hip[j] + 1 + cnf->hp5p,
+                              seq + cnf->tl5p + hip[j] + 1 + cnf->hp3p );
         if( verbose ) fprintf( stderr, "%s\t%6.3f\n", seq, values[j][a] );
         fprintf( stdout, "%s\n", seq );
         free( seq );

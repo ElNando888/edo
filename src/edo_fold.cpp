@@ -134,12 +134,13 @@ bool load_config( char* filename )
         }
         if( ok ) {
             // populate the other fields in the lab settings
-            lab->ofs1 = strlen( lab->hairpin_ss ) + strlen( lab->tail3p_ss );
-            lab->ofs2 = strcspn( lab->hairpin_nts, "." );
-            lab->bclen = strspn( lab->hairpin_nts + lab->ofs2, "." );
-            int j = lab->ofs2 + lab->bclen;
-            lab->ofs3 = j + strcspn( lab->hairpin_nts + j, "." );
-            lab->ofs4 = strlen( lab->tail5p_ss );
+            lab->hp5p = strcspn( lab->hairpin_nts, "." );
+            lab->bclen = strspn( lab->hairpin_nts + lab->hp5p, "." );
+            int j = lab->hp5p + lab->bclen;
+            lab->hp3p = j + strcspn( lab->hairpin_nts + j, "." );
+            lab->tl5p = strlen( lab->tail5p_ss );
+            lab->tl3p = strlen( lab->tail3p_ss );
+            lab->hp_tl = strlen( lab->hairpin_ss ) + lab->tl5p + lab->tl3p;
             
             lab->s_max = round( strlen( lab->hairpin_ss ) + .9 ) * 0.5;
             lab->s_scale = 10.0 / lab->s_max;
@@ -152,7 +153,7 @@ bool load_config( char* filename )
                                                        lab->hairpin_ss,
                                                        lab->tail3p_ss );
                 fprintf( stderr, "[%d,%d,%d,%d]-[%4.1f,%6.4f]\n",
-                                 lab->ofs1, lab->ofs2, lab->ofs3, lab->ofs4,
+                                 lab->hp_tl, lab->hp5p, lab->hp3p, lab->tl5p,
                                  lab->s_max, lab->s_scale );
                 fprintf( stderr, "Configuration successfully loaded from %s\n",
                                  filename );

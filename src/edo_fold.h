@@ -27,7 +27,8 @@ typedef struct _lab_config {
     // forbidden subsequences
     const char** forbidden;
     // various precomputed offsets
-    int   ofs1, ofs2, ofs3, ofs4;
+    int   hp5p, hp3p;
+    int   tl5p, tl3p, hp_tl;
     // scores
     double s_max, s_scale;
 } lab_config;
