@@ -320,8 +320,8 @@ int load_input( void )
         }
         // targets
         i = strspn( line, BASES );
-        if( i == 0 ) continue;
         j = strspn( line + i, SEPARATORS );
+        if( j == 0 && i == 0 ) continue;
         k = 0;
         if( j ) {
             k = strspn( line + i + j, BASES );
