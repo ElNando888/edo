@@ -207,7 +207,7 @@ void do_round( int r, int* num_swap, float* delta )
     if( !delta ) delta = &this_delta;
     (*delta) = 0.0;
 
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for( i = 0; i < num_seq; i++ ) {
         int j;
         long k;
