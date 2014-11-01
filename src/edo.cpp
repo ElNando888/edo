@@ -55,8 +55,8 @@ typedef val_map::iterator          val_map_it;
 typedef std::vector<val_map>       val_map_array;
 
 char**         sequences = NULL;    //   [num_seq]
-               // as in Hairpin Insertion Point
 int*           hip = NULL;          //   [num_seq]
+               // as in Hairpin Insertion Point
 val_map_array  values;
 
 char**         seqs = NULL;
@@ -117,10 +117,25 @@ int int_urn( int from, int to )
 {
     return ( ( (int) (drand48()*(to-from+1)) ) + from );
 }
-   
-   
+ 
+// Internal bitmap representation
+//
+// MSB  LSB  nucleobase    MSB    LSB   5'  3'
+//    00        C             0011        CG
+//    01        U             1100        GC
+//    10        A             1001        AU
+//    11        G             0110        UA
+//                            0111        UG
+//                            1101        GU
+//
+//
+// MSB  (64 bits => up to 16 base pairs) LSB
+//
+//                ---++---++---++---++--  5'
+//              ... -dddd-cccc-bbbb-aaaa
+//                  ---++---++---++---++  3'
+//
 
-// C U A G
 char bases[] = "CUAG";
 long long pmap[] = { 0x03, 0x0C, 0x09, 0x06, 0x07, 0x0D };
 
@@ -232,7 +247,9 @@ void do_round( int r, int* num_swap, float* delta )
         }
 
         for( j = 0; j < num_seq; j++ ) {
-            // if( (j == i) || !neighbor( i, j ) ) continue;
+#if 0 // as long as the data is available in memory, why not use it all?
+            if( (j == i) || !neighbor( i, j ) ) continue;
+#endif
             for( k = 0; k < num_bc; k++ ) {
                 if( ( prices[t][j][k] > new_p[k] ) 
                     || ( prices[t][j][k] == new_p[k] 
@@ -388,9 +405,10 @@ void auction_barcodes( void )
     }
     t = 0;
 
-    // choose an "origin"
+    // choose an "origin" (see populating the arrays, below)
     long long origin = 0;
     for( j = 0; j < cnf->bclen; j++ ) {
+        // try to make it a 'good' one: CG/GC closing, and 60% CG/GC pairs
         int v = int_urn( 0, j == 0 || j == cnf->bclen-1 ? 1 : 9 ) % 4;
         origin <<= 4;
         origin |= v==0 ? 0x3 : v==1 ? 0xC : v==2 ? 0x6 : 0x9;
@@ -403,12 +421,15 @@ void auction_barcodes( void )
             prices[0][j][k] = 1.0 + drand48();
             bidders[0][j][k] = j;
         }
+        // all agents start from the same location, and are artificially
+        // outbid, which forces them to explore the neighborhood and start
+        // spreading in all directions
         locations[0][j] = origin;
         alpha[0][j] = org_bc;
         bidders[0][j][alpha[0][j]] = num_seq;
     }
 
-    // do the loop thing
+    // do the loop thing...
     int r = 0;
     int swaps;
     do {
@@ -419,6 +440,7 @@ void auction_barcodes( void )
                              "%5d reassignments\n", r, num_scored, swaps );
         t++;
         t %= 2;
+    // ... until no one complains anymore
     } while( swaps > 0 );
 
     // output
