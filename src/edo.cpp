@@ -28,6 +28,9 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <list>
+#include <queue>
+#include <string>
 
 #include "edo_fold.h"
 #include "edo_cmdl.h"
@@ -366,6 +369,10 @@ int load_input( void )
 
 void eval_input( void )
 {
+    std::queue< std::string, std::list<std::string> > q_seq, q_copy;
+    std::queue< int, std::list<int> > q_ofs;
+    std::queue< double, std::list<double> > q_sc;
+    
     char* line = NULL;
     size_t len = 0;
     ssize_t r;
@@ -386,11 +393,44 @@ void eval_input( void )
             strcpy( clean + i + k, line + i + j + k + l );
         }
         clean[i + k + m] = '\0';
-        double score = score_seq( 0, clean, i );
-        fprintf( stdout, "%9.6f\t%s\n", score, clean );
+        q_seq.push( clean );
+        q_ofs.push( i );
         free( clean );
     } while( r >= 0 );
     free( line );
+
+    size_t n = q_seq.size();
+    if( verbose ) fprintf( stderr, "Evaluating %lu sequences...\n", n );
+    unsigned int i;
+    #pragma omp parallel for schedule(dynamic) ordered
+    for( i = 0; i < n; i++ ) {
+        char* xseq;
+        int o;
+
+        #pragma omp critical(queues)
+        {
+            xseq = strdup( q_seq.front().c_str() );
+            q_seq.pop();
+            o = q_ofs.front();
+            q_ofs.pop();
+        }
+
+        double score = score_seq( 0, xseq, o );
+
+        #pragma omp ordered
+        {
+            q_copy.push( xseq );
+            q_sc.push( score );
+        }
+        free( xseq );
+    }
+
+    for( i = 0; i < n; i++ ) {
+        fprintf( stdout, "%9.6f\t%s\n", q_sc.front(), q_copy.front().c_str() );
+        q_sc.pop();
+        q_copy.pop();
+    }
+        
 }
 
 
