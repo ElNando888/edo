@@ -26,6 +26,8 @@ typedef struct _lab_config {
     const char*  tail3p_nts;
     // forbidden subsequences
     const char** forbidden;
+    // special, try to prevent RT stalling
+    int    max_solid_GCs;
     // various precomputed offsets
     int   hp5p, hp3p;
     int   tl5p, tl3p, hp_tl;

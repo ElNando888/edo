@@ -58,7 +58,8 @@ static lab_config daslab_cnf = {
     HAIRPIN_NTS,
     TAIL3P_NTS,
     daslab_forbidden,
-    39, 0, 11, 2,
+    4,
+    0, 11, 2, 20, 41,
     10., 1.
 };
 
@@ -131,6 +132,9 @@ bool load_config( char* filename )
                                                          (i+1) * sizeof( char* ) );
                 lab->forbidden[i] = NULL;
             }
+            
+            lab->max_solid_GCs = 0;
+            (void) config_lookup_int( &cfg, "settings.max_solid_GCs", &lab->max_solid_GCs );
         }
         if( ok ) {
             // populate the other fields in the lab settings
@@ -152,8 +156,8 @@ bool load_config( char* filename )
                 fprintf( stderr, "%s / / %s / / %s\n", lab->tail5p_ss,
                                                        lab->hairpin_ss,
                                                        lab->tail3p_ss );
-                fprintf( stderr, "[%d,%d,%d,%d]-[%4.1f,%6.4f]\n",
-                                 lab->hp_tl, lab->hp5p, lab->hp3p, lab->tl5p,
+                fprintf( stderr, "[%d,%d,%d,%d,%d]-[%4.1f,%6.4f]\n",
+                                 lab->hp_tl, lab->hp5p, lab->hp3p, lab->tl5p, lab->tl3p,
                                  lab->s_max, lab->s_scale );
                 fprintf( stderr, "Configuration successfully loaded from %s\n",
                                  filename );
@@ -184,12 +188,6 @@ void load_fold_params( char* filename ) {
 
 bool is_legal( char* seq )
 {
-#if 0
-    if( strstr( seq, "AAAAA" ) ) return false;
-    if( strstr( seq, "CCCC" ) ) return false;
-    if( strstr( seq, "GGGG" ) ) return false;
-#endif
-
     if( cnf->forbidden ) {
         const char** p = cnf->forbidden;
         while( *p ) {
@@ -199,6 +197,33 @@ bool is_legal( char* seq )
     }
 
     return true;
+}
+
+
+bool is_legal_pair_content( char* seq, char* secstr, int ip )
+{
+    if( cnf->max_solid_GCs <= 0 ) return true;
+    char* mark = strdup( secstr );
+    short* pt = make_pair_table( secstr );
+    int o;
+    for( o = 1; o <= strlen( cnf->hairpin_ss ); o++ ) {
+        int i = ip + o;
+        if( pt[i] < i ) continue;
+        mark[i-1] = ((seq[i-1] ^ seq[pt[i]-1] ^ 'G' ^ 'C')==0)? 'X' : '-';
+    }
+    bool ok = true;
+    char* p = mark;
+    while( (*p) && ok ) {
+        p += strcspn( p, "X" );
+        if( *p ) {
+            int n = strspn( p, "X" );
+            if( n > cnf->max_solid_GCs ) ok = false;
+            p += n;
+        }        
+    }
+    free( pt );
+    free( mark );
+    return ok;
 }
 
 
@@ -224,6 +249,12 @@ double score_seq( int s, char* seq, int ip )
                  cnf->hairpin_ss, strlen( cnf->hairpin_ss ) ) != 0
         || strcmp( secstr + length - strlen( cnf->tail3p_ss ),
                    cnf->tail3p_ss ) != 0 ) {
+        free( params );
+        free( secstr );
+        free( ix );
+        return score;
+    }
+    if( !is_legal_pair_content( seq, secstr, ip ) ) {
         free( params );
         free( secstr );
         free( ix );
