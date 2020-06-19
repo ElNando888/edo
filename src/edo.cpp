@@ -278,7 +278,7 @@ void do_round( int r, int* num_swap, float* delta )
             update_local_values( i );
 
             // 3.b choose a new assignment
-            float best_g = -100.0;
+            float best_g = -1000000.0;
             long long best_x = -1;
             long best_c = -1;
             val_map_it m;
@@ -291,7 +291,7 @@ void do_round( int r, int* num_swap, float* delta )
                     best_c = c;
                 }
             }
-            float next_g = -100.0;
+            float next_g = -1000000.0;
             for( m = values[i].begin(); m != values[i].end(); m++ ) {
                 long long x = m->first;
                 long c = location_to_barcode( x );
@@ -532,7 +532,7 @@ int main( int argc, char** argv )
 
     load_input();
     if( nseqs == 0 ) {
-        fprintf( stderr, "Not much work to do..." );
+        fprintf( stderr, "Not much work to do...\n" );
         return 0;
     }
 

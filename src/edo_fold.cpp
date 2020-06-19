@@ -245,15 +245,6 @@ double score_seq( int s, char* seq, int ip )
     fold_constrained = 0;
     paramT* params = get_scaled_parameters( temperature, md );
     double min_en = fold_par( seq, secstr, params, fold_constrained, 0 );
-    if( strncmp( secstr + ip,
-                 cnf->hairpin_ss, strlen( cnf->hairpin_ss ) ) != 0
-        || strcmp( secstr + length - strlen( cnf->tail3p_ss ),
-                   cnf->tail3p_ss ) != 0 ) {
-        free( params );
-        free( secstr );
-        free( ix );
-        return score;
-    }
     if( !is_legal_pair_content( seq, secstr, ip ) ) {
         free( params );
         free( secstr );
@@ -289,6 +280,14 @@ double score_seq( int s, char* seq, int ip )
         }
     }
     score *= cnf->s_scale;
+
+    // if structural requirements aren't met, penalize
+    if( strncmp( secstr + ip,
+                 cnf->hairpin_ss, strlen( cnf->hairpin_ss ) ) != 0
+        || strcmp( secstr + length - strlen( cnf->tail3p_ss ),
+                   cnf->tail3p_ss ) != 0 ) {
+        score *= 0.5;
+    }
 
     free( pf_params );
     free( params );
