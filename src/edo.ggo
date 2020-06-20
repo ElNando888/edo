@@ -26,6 +26,11 @@ string
 typestr="FILE"
 optional
 
+option  "multi" m
+"Multi-origin.\n"
+flag
+off
+
 option  "verbose" v
 "Verbose output\n"
 flag

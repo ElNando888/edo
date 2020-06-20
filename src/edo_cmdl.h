@@ -59,6 +59,10 @@ struct edo_args_info
  original value given at command line.  */
   const char *paramFile_help; /**< @brief Read energy parameters from FILE, instead of using the default parameter set.
  help description.  */
+  int multi_flag;	/**< @brief Multi-origin.
+ (default=off).  */
+  const char *multi_help; /**< @brief Multi-origin.
+ help description.  */
   int verbose_flag;	/**< @brief Verbose output
  (default=off).  */
   const char *verbose_help; /**< @brief Verbose output
@@ -69,6 +73,7 @@ struct edo_args_info
   unsigned int eval_given ;	/**< @brief Whether eval was given.  */
   unsigned int lab_settings_given ;	/**< @brief Whether lab-settings was given.  */
   unsigned int paramFile_given ;	/**< @brief Whether paramFile was given.  */
+  unsigned int multi_given ;	/**< @brief Whether multi was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
 
 } ;

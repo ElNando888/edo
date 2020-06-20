@@ -41,6 +41,8 @@
 
 int verbose = 0;
 
+bool multi_origin = false;
+
 float epsilon = 0.01;
 
 int num_seq;
@@ -433,6 +435,18 @@ void eval_input( void )
         
 }
 
+long long choose_origin( void )
+{
+    long long origin = 0;
+    int j;
+    for( j = 0; j < cnf->bclen; j++ ) {
+        // try to make it a 'good' one: CG/GC closing, and 60% CG/GC pairs
+        int v = int_urn( 0, j == 0 || j == cnf->bclen-1 ? 1 : 9 ) % 4;
+        origin <<= 4;
+        origin |= v==0 ? 0x3 : v==1 ? 0xC : v==2 ? 0x6 : 0x9;
+    }
+    return origin;
+}
 
 void auction_barcodes( void )
 {
@@ -446,13 +460,7 @@ void auction_barcodes( void )
     t = 0;
 
     // choose an "origin" (see populating the arrays, below)
-    long long origin = 0;
-    for( j = 0; j < cnf->bclen; j++ ) {
-        // try to make it a 'good' one: CG/GC closing, and 60% CG/GC pairs
-        int v = int_urn( 0, j == 0 || j == cnf->bclen-1 ? 1 : 9 ) % 4;
-        origin <<= 4;
-        origin |= v==0 ? 0x3 : v==1 ? 0xC : v==2 ? 0x6 : 0x9;
-    }
+    long long origin = choose_origin();
     long org_bc = location_to_barcode( origin );
     
     // populate arrays
@@ -467,6 +475,10 @@ void auction_barcodes( void )
         locations[0][j] = origin;
         alpha[0][j] = org_bc;
         bidders[0][j][alpha[0][j]] = num_seq;
+        if( multi_origin ) {
+            origin = choose_origin();
+            org_bc = location_to_barcode( origin );
+        }
     }
 
     // do the loop thing...
@@ -512,6 +524,8 @@ int main( int argc, char** argv )
         exit( 1 );
     
     if( args_info.verbose_given ) verbose = 1;
+
+    if( args_info.multi_given ) multi_origin = true;
 
     if( args_info.lab_settings_given ) {
         if( !load_config( args_info.lab_settings_arg ) ) {
